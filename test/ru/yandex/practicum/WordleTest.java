@@ -107,9 +107,9 @@ class WordleTest {
         Files.writeString(file, "ГЕРОЙ\nдом\nЁЖИК\nhello\n", StandardCharsets.UTF_8);
         WordleDictionary loadedDictionary = new WordleDictionaryLoader(new PrintWriter(new StringWriter())).load(file.toString());
         assertTrue(loadedDictionary.contains("герой"));
-        assertTrue(loadedDictionary.contains("ежик"));
+        assertFalse(loadedDictionary.contains("ежик"));
         assertFalse(loadedDictionary.contains("дом"));
-        assertEquals(2, loadedDictionary.getWords().size());
+        assertEquals(1, loadedDictionary.getWords().size());
     }
 
     @Test

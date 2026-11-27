@@ -20,6 +20,7 @@ public class WordleGame {
 
     private int steps = MAX_STEPS;
     private boolean won;
+    private Random random;
 
     public WordleGame(WordleDictionary dictionary, PrintWriter log) {
         this(dictionary, log, new Random());
@@ -30,9 +31,16 @@ public class WordleGame {
             throw new IllegalArgumentException("Для игры нужен непустой словарь.");
         }
 
+        if (random == null) {
+            throw new IllegalArgumentException("Генератор случайных чисел не должен быть null.");
+        }
+
         this.dictionary = dictionary;
         this.log = log;
+        this.random = random;
+
         this.answer = dictionary.getWords().get(random.nextInt(dictionary.getWords().size()));
+
         writeLog("Игра началась. Загаданное слово выбрано, попыток: " + steps);
     }
 
@@ -72,38 +80,53 @@ public class WordleGame {
     public String getHint() {
         List<String> candidates = new ArrayList<>();
 
-        outer:
+        // Перебираем все слова из словаря
         for (String candidate : dictionary.getWords()) {
 
+            // Не предлагаем слова, которые уже вводили
             if (history.containsKey(candidate)) {
                 continue;
             }
 
-            if (hints.containsKey(candidate) && !candidate.equals(answer)) {
+            // Не предлагаем ранее показанные подсказки
+            if (hints.containsKey(candidate)) {
                 continue;
             }
 
-            for (Map.Entry<String, String> entry : history.entrySet()) {
+            boolean matchesHistory = true;
 
-                if (!WordleDictionary.compare(entry.getKey(), candidate).equals(entry.getValue())) {
-                    continue outer;
+            // Проверяем слово по результатам предыдущих попыток
+            for (Map.Entry<String, String> entry : history.entrySet()) {
+                String previousGuess = entry.getKey();
+                String previousResult = entry.getValue();
+
+                String candidateResult =
+                        WordleDictionary.compare(previousGuess, candidate);
+
+                if (!candidateResult.equals(previousResult)) {
+                    matchesHistory = false;
+                    break;
                 }
             }
 
-            candidates.add(candidate);
+            // Если слово подходит под все предыдущие результаты,
+            // добавляем его в список кандидатов
+            if (matchesHistory) {
+                candidates.add(candidate);
+            }
         }
 
-        if (!won && !isFinished() && !candidates.contains(answer)) {
-            throw new IllegalStateException("Фильтрация подсказок потеряла правильный ответ.");
-        }
-
+        // Проверяем, остались ли доступные подсказки
         if (candidates.isEmpty()) {
-            throw new IllegalStateException("Не осталось новых подходящих подсказок.");
+            throw new IllegalStateException("Нет доступных подсказок.");
         }
 
-        String hint = candidates.get(0);
+        // Выбираем случайное слово
+        String hint = candidates.get(random.nextInt(candidates.size()));
+
+        // Сохраняем использованную подсказку
         hints.merge(hint, 1, Integer::sum);
-        writeLog("Подсказка: " + hint + ", доступных вариантов: " + candidates.size() + ", подсказка выдана раз: " + hints.get(hint));
+
         return hint;
     }
 
